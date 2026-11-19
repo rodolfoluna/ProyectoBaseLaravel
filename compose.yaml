@@ -1,0 +1,37 @@
+services:
+  app:
+    build: ./docker/php
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8000"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    init: true
+  db:
+    image: mariadb:11.4.9@sha256:54ac814d243128263e18cf818f7abb611bf43a7a95ce8aa102d18f527b1516d1
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-pbl}
+      MARIADB_USER: ${DB_USERNAME:-pbl}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-pbl_desarrollo}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_desarrollo}
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+  node:
+    image: node:22.21.1-bookworm-slim@sha256:25b3eb23a00590b7499f2a2ce939322727fcce1b15fdd69754fcd09536a3ae2c
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    profiles: [tools]
+    init: true
+volumes:
+  database:
+  node_modules:
